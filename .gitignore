@@ -6,3 +6,8 @@ coverage
 dist
 **/.vite
 .vscode
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+.nyc_output
