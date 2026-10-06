@@ -7,7 +7,7 @@ test('home page', async ({ page }) => {
 });
 
 test('purchase with login', async ({ page }) => {
-    await page.goto('/http://localhost:5173/');
+    await page.goto('/');
 
 
     await page.getByRole('link', { name: 'Order' }).click();
@@ -29,7 +29,7 @@ test('purchase with login', async ({ page }) => {
 });
 
 test('login', async ({ page }) => {
-    await page.goto('/http://localhost:5173/');
+    await page.goto('/');
     await page.getByRole('link', { name: 'Login' }).click();
     await page.getByRole('textbox', { name: 'Email address' }).click();
     await page.getByRole('textbox', { name: 'Email address' }).fill('d@jwt.com');
@@ -42,10 +42,49 @@ test('login', async ({ page }) => {
 });
 
 test('login fails with wrong password', async ({ page }) => {
-    await page.goto('/http://localhost:5173/');
+    await page.goto('/');
     await page.getByRole('link', { name: 'Login' }).click();
     await page.getByRole('textbox', { name: 'Email address' }).fill('d@jwt.com');
     await page.getByRole('textbox', { name: 'Password' }).fill('wrongpassword');
     await page.getByRole('textbox', { name: 'Password' }).press('Enter');
     await expect(page.getByText('{"code":404,"message":"unknown user"}')).toBeVisible();
 });
+
+test('logout', async ({ page }) => {
+    await page.goto('/');
+
+    await page.getByRole('link', { name: 'Login' }).click();
+    await page.getByRole('textbox', { name: 'Email address' }).click();
+    await page.getByRole('textbox', { name: 'Email address' }).fill('d@jwt.com');
+    await page.getByRole('textbox', { name: 'Email address' }).press('Tab');
+    await page.getByRole('textbox', { name: 'Password' }).fill('diner');
+    await page.getByRole('textbox', { name: 'Password' }).press('Enter');
+    await page.getByRole('link', { name: 'Logout' }).click();
+
+    await expect(page.getByRole('link', { name: 'Login' })).toBeVisible();
+
+    await expect(page.getByText("The web's best pizza", { exact: true })).toBeVisible();
+});
+
+test('diner dashboard', async ({ page }) => {
+    await page.goto('/');
+
+    //login first
+    await page.getByRole('link', { name: 'Login', exact: true }).click();
+    await page.getByRole('textbox', { name: 'Email address' }).click();
+    await page.getByRole('textbox', { name: 'Email address' }).fill('d@jwt.com');
+    await page.getByRole('textbox', { name: 'Email address' }).press('Tab');
+    await page.getByRole('textbox', { name: 'Password' }).fill('diner');
+    await page.getByRole('textbox', { name: 'Password' }).press('Enter');
+
+    //then click on the diner dashboard
+
+    await page.getByRole('link', { name: 'pd' }).click();
+    await expect(page.getByRole('heading', { name: 'Your pizza kitchen' })).toBeVisible();
+    await expect(page.getByText('pizza diner')).toBeVisible();
+    await expect(page.getByText('d@jwt.com')).toBeVisible();
+    await expect(page.getByText(/history of all the good times/i)).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'ID' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Price' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Date' })).toBeVisible();
+})
