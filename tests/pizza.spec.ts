@@ -87,18 +87,20 @@ test('diner dashboard', async ({ page }) => {
     await expect(page.getByRole('columnheader', { name: 'ID' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Price' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Date' })).toBeVisible();
-})
+});
 
 test('register', async ({ page }) => {
     await page.goto('/');
 
+    const email = `test${Date.now()}@jwt.com`
+
     await page.getByRole('link', { name: 'Register' }).click();
     await page.getByRole('textbox', { name: 'Full name' }).fill('Test User');
-    await page.getByRole('textbox', { name: 'Email address' }).fill('testUser@jwt.com');
+    await page.getByRole('textbox', { name: 'Email address' }).fill(email);
     await page.getByRole('textbox', { name: 'Password' }).fill('password');
     await page.getByRole('button', { name: 'Register' }).click();
     await page.getByRole('link', { name: 'TU' }).click();
-})
+});
 
 test('franchise dashboard', async ({ page }) => {
     await page.goto('/');
@@ -119,4 +121,68 @@ test('franchise dashboard', async ({ page }) => {
     await expect(page.getByRole('columnheader', { name: 'Profit' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Costs' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Franchise Fee' })).toBeVisible();
-})
+});
+
+
+test('admin dashboard', async ({ page }) => {
+    await page.goto('/');
+
+    //login as admin
+    await page.getByRole('link', { name: 'Login' }).click();
+    await page.getByRole('textbox', { name: 'Email address' }).fill('a@jwt.com');
+    await page.getByRole('textbox', { name: 'Password' }).fill('admin');
+    await page.getByRole('textbox', { name: 'Password' }).press('Enter');
+
+    await expect(
+        page.getByText("The web's best pizza", { exact: true })
+    ).toBeVisible();
+
+    await page
+        .getByRole('navigation', { name: 'Global' })
+        .getByRole('link', { name: 'Franchise' })
+        .click();
+
+    await expect(page.getByText(/So you want a piece of the/i)).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Year' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Profit' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Costs' })).toBeVisible();
+});
+
+test('create store', async ({ page }) => {
+    test.setTimeout(15000);
+    await page.goto('/');
+    const storeName = `Test store ${Date.now()}`;
+
+    await page.getByRole('link', { name: 'Login' }).click();
+    await page.getByRole('textbox', { name: 'Email address' }).fill('f@jwt.com');
+    await page.getByRole('textbox', { name: 'Password' }).fill('franchisee');
+    await page.getByRole('textbox', { name: 'Password' }).press('Enter');
+    await expect(page.getByRole('link', { name: 'Logout' })).toBeVisible();
+
+    await page.getByRole('navigation', { name: 'Global' }).getByRole('link', { name: 'Franchise' }).click();
+    await expect(page.getByRole('button', { name: 'Create store' })).toBeVisible();
+    await page.getByRole('button', { name: 'Create store' }).click();
+    await page.getByRole('textbox', { name: 'store name' }).fill(storeName);
+    await page.getByRole('button', { name: 'Create' }).click();
+    await expect(page.getByRole('cell', { name: storeName })).toBeVisible();
+});
+
+test('close store', async ({ page }) => {
+  test.setTimeout(15000);
+
+  await page.goto('/');
+
+  await page.getByRole('link', { name: 'Login' }).click();
+  await page.getByRole('textbox', { name: 'Email address' }).fill('f@jwt.com');
+  await page.getByRole('textbox', { name: 'Password' }).fill('franchisee');
+  await page.getByRole('textbox', { name: 'Password' }).press('Enter');
+  
+  await expect(page.getByRole('link', { name: 'Logout' })).toBeVisible();
+  await page.getByRole('navigation', { name: 'Global' }).getByRole('link', { name: 'Franchise' }).click();
+
+  const storeRow = page.getByRole('row').filter({ hasText: /Test store/i });
+  await expect(storeRow.first()).toBeVisible();
+  await storeRow.first().getByRole('button', { name: 'Close' }).click();
+  await expect(page.getByText(/Sorry to see you go/i)).toBeVisible();
+  await page.getByRole('button', { name: 'Close' }).click();
+});
