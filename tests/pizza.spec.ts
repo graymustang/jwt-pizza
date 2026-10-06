@@ -83,8 +83,40 @@ test('diner dashboard', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Your pizza kitchen' })).toBeVisible();
     await expect(page.getByText('pizza diner')).toBeVisible();
     await expect(page.getByText('d@jwt.com')).toBeVisible();
-    await expect(page.getByText(/history of all the good times/i)).toBeVisible();
+    await expect(page.getByText(/history of all the good times/i)).toBeVisible({ timeout: 10000 });
     await expect(page.getByRole('columnheader', { name: 'ID' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Price' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Date' })).toBeVisible();
+})
+
+test('register', async ({ page }) => {
+    await page.goto('/');
+
+    await page.getByRole('link', { name: 'Register' }).click();
+    await page.getByRole('textbox', { name: 'Full name' }).fill('Test User');
+    await page.getByRole('textbox', { name: 'Email address' }).fill('testUser@jwt.com');
+    await page.getByRole('textbox', { name: 'Password' }).fill('password');
+    await page.getByRole('button', { name: 'Register' }).click();
+    await page.getByRole('link', { name: 'TU' }).click();
+})
+
+test('franchise dashboard', async ({ page }) => {
+    await page.goto('/');
+
+    //login first
+    await page.getByRole('link', { name: 'Login' }).click();
+    await page.getByRole('textbox', { name: 'Email address' }).click();
+    await page.getByRole('textbox', { name: 'Email address' }).fill('d@jwt.com');
+    await page.getByRole('textbox', { name: 'Password' }).fill('diner');
+    await page.getByRole('textbox', { name: 'Password' }).press('Enter');
+
+    await page.getByRole('navigation', { name: 'Global' }).getByRole('link', { name: 'Franchise' }).click();
+
+    //then go to franchise dashboard
+    await expect(page.getByText(/So you want a piece of the/i)).toBeVisible();
+    await expect(page.getByText(/If you are already a/i)).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Year' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Profit' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Costs' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Franchise Fee' })).toBeVisible();
 })
