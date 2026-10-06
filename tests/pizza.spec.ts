@@ -168,21 +168,69 @@ test('create store', async ({ page }) => {
 });
 
 test('close store', async ({ page }) => {
-  test.setTimeout(15000);
+    test.setTimeout(15000);
 
-  await page.goto('/');
+    await page.goto('/');
 
-  await page.getByRole('link', { name: 'Login' }).click();
-  await page.getByRole('textbox', { name: 'Email address' }).fill('f@jwt.com');
-  await page.getByRole('textbox', { name: 'Password' }).fill('franchisee');
-  await page.getByRole('textbox', { name: 'Password' }).press('Enter');
-  
-  await expect(page.getByRole('link', { name: 'Logout' })).toBeVisible();
-  await page.getByRole('navigation', { name: 'Global' }).getByRole('link', { name: 'Franchise' }).click();
+    await page.getByRole('link', { name: 'Login' }).click();
+    await page.getByRole('textbox', { name: 'Email address' }).fill('f@jwt.com');
+    await page.getByRole('textbox', { name: 'Password' }).fill('franchisee');
+    await page.getByRole('textbox', { name: 'Password' }).press('Enter');
 
-  const storeRow = page.getByRole('row').filter({ hasText: /Test store/i });
-  await expect(storeRow.first()).toBeVisible();
-  await storeRow.first().getByRole('button', { name: 'Close' }).click();
-  await expect(page.getByText(/Sorry to see you go/i)).toBeVisible();
-  await page.getByRole('button', { name: 'Close' }).click();
+    await expect(page.getByRole('link', { name: 'Logout' })).toBeVisible();
+    await page.getByRole('navigation', { name: 'Global' }).getByRole('link', { name: 'Franchise' }).click();
+
+    const storeRow = page.getByRole('row').filter({ hasText: /Test store/i });
+    await expect(storeRow.first()).toBeVisible();
+    await storeRow.first().getByRole('button', { name: 'Close' }).click();
+    await expect(page.getByText(/Sorry to see you go/i)).toBeVisible();
+    await page.getByRole('button', { name: 'Close' }).click();
 });
+
+test('about page', async ({ page }) => {
+    await page.goto('/');
+
+    await page.getByRole('link', { name: 'About' }).click();
+
+    await expect(page.getByRole('main')).toBeVisible();
+});
+
+test('not found page', async ({ page }) => {
+    await page.goto('/this-page-does-not-exist');
+
+    await expect(page.getByText('oops')).toBeVisible();
+});
+
+test('delivery page', async ({ page }) => {
+    test.setTimeout(15000);
+
+    await page.goto('/');
+
+    await page.getByRole('link', { name: 'Order' }).click();
+    await page.getByRole('combobox').selectOption('3');
+
+    await page.getByRole('link', { name: 'Image Description Veggie A' }).click();
+
+    await page.getByRole('button', { name: 'Checkout' }).click();
+
+    await page.getByRole('textbox', { name: 'Email address' }).fill('d@jwt.com');
+    await page.getByRole('textbox', { name: 'Password' }).fill('diner');
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    await page.getByRole('button', { name: 'Pay now' }).click();
+
+    await expect(
+        page.getByRole('heading', { name: 'Here is your JWT Pizza!' })
+    ).toBeVisible();
+
+    await expect(page.getByText(/order ID:/i)).toBeVisible();
+    await expect(page.getByText(/pie count:/i)).toBeVisible();
+    await expect(page.getByText(/total:/i)).toBeVisible();
+
+await page.getByRole('button', { name: 'Verify' }).click();
+
+await expect(
+  page.getByText('JWT Pizza - invalid')
+).toBeAttached();
+});
+
