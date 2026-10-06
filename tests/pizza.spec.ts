@@ -191,7 +191,6 @@ test('about page', async ({ page }) => {
     await page.goto('/');
 
     await page.getByRole('link', { name: 'About' }).click();
-
     await expect(page.getByRole('main')).toBeVisible();
 });
 
@@ -203,34 +202,36 @@ test('not found page', async ({ page }) => {
 
 test('delivery page', async ({ page }) => {
     test.setTimeout(15000);
-
     await page.goto('/');
 
     await page.getByRole('link', { name: 'Order' }).click();
     await page.getByRole('combobox').selectOption('3');
-
     await page.getByRole('link', { name: 'Image Description Veggie A' }).click();
-
     await page.getByRole('button', { name: 'Checkout' }).click();
-
     await page.getByRole('textbox', { name: 'Email address' }).fill('d@jwt.com');
     await page.getByRole('textbox', { name: 'Password' }).fill('diner');
     await page.getByRole('button', { name: 'Login' }).click();
-
     await page.getByRole('button', { name: 'Pay now' }).click();
 
-    await expect(
-        page.getByRole('heading', { name: 'Here is your JWT Pizza!' })
-    ).toBeVisible();
-
+    await expect(page.getByRole('heading', { name: 'Here is your JWT Pizza!' })).toBeVisible();
     await expect(page.getByText(/order ID:/i)).toBeVisible();
     await expect(page.getByText(/pie count:/i)).toBeVisible();
     await expect(page.getByText(/total:/i)).toBeVisible();
-
-await page.getByRole('button', { name: 'Verify' }).click();
-
-await expect(
-  page.getByText('JWT Pizza - invalid')
-).toBeAttached();
+    await page.getByRole('button', { name: 'Verify' }).click();
+    await expect(page.getByText('JWT Pizza - invalid')).toBeAttached();
 });
 
+test('history page', async ({ page }) => {
+    await page.goto('/history');
+
+    await expect(page.getByRole('heading', { name: 'Mama Rucci, my my' })).toBeVisible();
+    await expect(page.getByText(/It all started in Mama Ricci's kitchen/i)).toBeVisible();
+});
+
+
+test('order now button', async ({ page }) => {
+    await page.goto('/');
+
+    await page.getByRole('button', { name: 'Order now' }).click();
+    await expect(page).toHaveURL(/\/menu/);
+});
