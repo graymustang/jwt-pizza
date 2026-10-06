@@ -1,13 +1,274 @@
-import { test, expect } from 'playwright-test-coverage';
+import { test, expect } from './testSetup';
+import { Page } from '@playwright/test';
 
-test('home page', async ({ page }) => {
+
+async function basicInit(page: Page) {
+    let loggedInUser: any;
+    let stores = [
+        {
+            id: '10',
+            name: 'Test store',
+            totalRevenue: 0,
+        },
+    ];
+    const validUsers: Record<string, any> = {
+        'd@jwt.com': {
+            id: '3',
+            name: 'pizza diner',
+            email: 'd@jwt.com',
+            password: 'diner',
+            roles: [{ role: 'diner' }],
+        },
+        'f@jwt.com': {
+            id: '4',
+            name: 'franchise owner',
+            email: 'f@jwt.com',
+            password: 'franchisee',
+            roles: [{ role: 'franchisee', objectId: '1' }],
+        },
+        'a@jwt.com': {
+            id: '5',
+            name: 'admin',
+            email: 'a@jwt.com',
+            password: 'admin',
+            roles: [{ role: 'admin' }],
+        },
+    };
+
+    //login/registe /logout
+    await page.route('*/**/api/auth', async (route) => {
+        const method = route.request().method();
+        if (method === 'PUT') {
+            const body = route.request().postDataJSON();
+            const user = validUsers[body.email];
+
+            if (!user || user.password !== body.password) {
+                await route.fulfill({
+                    status: 404,
+                    json: { message: 'unknown user' },
+                });
+                return;
+            }
+
+            loggedInUser = user;
+
+            await route.fulfill({
+                json: {
+                    user,
+                    token: 'abcdef',
+                },
+            });
+
+            return;
+        }
+        if (method === 'POST') {
+            const body = route.request().postDataJSON();
+            loggedInUser = {
+                id: '100',
+                name: body.name,
+                email: body.email,
+                roles: [{ role: 'diner' }],
+            };
+            await route.fulfill({
+                json: {
+                    user: loggedInUser,
+                    token: 'abcdef',
+                },
+            });
+            return;
+        }
+
+        if (method === 'DELETE') {
+            loggedInUser = undefined;
+            await route.fulfill({ json: {} });
+            return;
+        }
+        await route.fallback();
+    });
+
+    //current user
+    await page.route('*/**/api/user/me', async (route) => {
+        await route.fulfill({
+            json: loggedInUser,
+        });
+    });
+
+    //pizza menu
+    await page.route('*/**/api/order/menu', async (route) => {
+        await route.fulfill({
+            json: [
+                {
+                    id: '1',
+                    title: 'Veggie',
+                    image: 'pizza1.png',
+                    price: 0.0038,
+                    description: 'A garden of delight',
+                },
+                {
+                    id: '2',
+                    title: 'Pepperoni',
+                    image: 'pizza2.png',
+                    price: 0.0042,
+                    description: 'Spicy treat',
+                },
+                {
+                    id: '3',
+                    title: 'Margarita',
+                    image: 'pizza3.png',
+                    price: 0.0014,
+                    description: 'Essential classic',
+                },
+            ],
+        });
+    });
+
+    //franchise list used by menu
+    await page.route(/\/api\/franchise\?.*$/, async (route) => {
+        await route.fulfill({
+            json: {
+                franchises: [
+                    {
+                        id: '1',
+                        name: 'Test Franchise',
+                        stores: [
+                            {
+                                id: '3',
+                                name: 'SLC',
+                                totalRevenue: 0,
+                            },
+                        ],
+                    },
+                ],
+                more: false,
+            },
+        });
+    });
+
+    //franchise owned by f@jwt.com
+    await page.route(/\/api\/franchise\/\d+$/, async (route) => {
+        if (route.request().method() === 'GET') {
+            const url = route.request().url();
+            const userId = url.split('/').pop();
+            if (userId === '3') {
+                await route.fulfill({
+                    json: [],
+                });
+                return;
+            }
+            if (userId === '4') {
+                await route.fulfill({
+                    json: [
+                        {
+                            id: '1',
+                            name: 'Test Franchise',
+                            stores: stores,
+                        },
+                    ],
+                });
+                return;
+            }
+            await route.fulfill({
+                json: [],
+            });
+            return;
+        }
+
+        await route.fallback();
+    });
+
+    await page.route('*/**/api/franchise/1/store', async (route) => {
+        if (route.request().method() === 'POST') {
+            const body = route.request().postDataJSON();
+
+            const newStore = {
+                id: String(stores.length + 11),
+                name: body.name,
+                totalRevenue: 0,
+            };
+
+            stores.push(newStore);
+
+            await route.fulfill({
+                json: newStore,
+            });
+
+            return;
+        }
+
+        await route.fallback();
+    });
+
+    //orders
+    await page.route('*/**/api/order', async (route) => {
+        const method = route.request().method();
+        if (method === 'POST') {
+            const order = route.request().postDataJSON();
+            await route.fulfill({
+                json: {
+                    order: {
+                        ...order,
+                        id: '23',
+                        date: new Date().toISOString(),
+                    },
+                    jwt: 'fake-jwt',
+                },
+            });
+
+            return;
+        }
+        if (method === 'GET') {
+            await route.fulfill({
+                json: {
+                    id: '1',
+                    dinerId: '3',
+                    orders: [
+                        {
+                            id: '16',
+                            franchiseId: '1',
+                            storeId: '3',
+                            date: new Date().toISOString(),
+                            items: [
+                                {
+                                    menuId: '1',
+                                    description: 'Veggie',
+                                    price: 0.0038,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            });
+
+            return;
+        }
+
+        await route.fallback();
+    });
+
     await page.goto('/');
+
+    await page.route(/\/api\/franchise\/1\/store\/\d+$/, async (route) => {
+        if (route.request().method() === 'DELETE') {
+            const storeId = route.request().url().split('/').pop();
+            stores = stores.filter(
+                (store) => String(store.id) !== storeId
+            );
+            await route.fulfill({
+                json: {},
+            });
+            return;
+        }
+        await route.fallback();
+    });
+}
+test('home page', async ({ page }) => {
+    await basicInit(page);
 
     expect(await page.title()).toBe('JWT Pizza');
 });
 
 test('purchase with login', async ({ page }) => {
-    await page.goto('/');
+    await basicInit(page);
 
 
     await page.getByRole('link', { name: 'Order' }).click();
@@ -29,7 +290,7 @@ test('purchase with login', async ({ page }) => {
 });
 
 test('login', async ({ page }) => {
-    await page.goto('/');
+    await basicInit(page);;
     await page.getByRole('link', { name: 'Login' }).click();
     await page.getByRole('textbox', { name: 'Email address' }).click();
     await page.getByRole('textbox', { name: 'Email address' }).fill('d@jwt.com');
@@ -42,7 +303,7 @@ test('login', async ({ page }) => {
 });
 
 test('login fails with wrong password', async ({ page }) => {
-    await page.goto('/');
+    await basicInit(page);;
     await page.getByRole('link', { name: 'Login' }).click();
     await page.getByRole('textbox', { name: 'Email address' }).fill('d@jwt.com');
     await page.getByRole('textbox', { name: 'Password' }).fill('wrongpassword');
@@ -51,7 +312,7 @@ test('login fails with wrong password', async ({ page }) => {
 });
 
 test('logout', async ({ page }) => {
-    await page.goto('/');
+    await basicInit(page);
 
     await page.getByRole('link', { name: 'Login' }).click();
     await page.getByRole('textbox', { name: 'Email address' }).click();
@@ -67,7 +328,7 @@ test('logout', async ({ page }) => {
 });
 
 test('diner dashboard', async ({ page }) => {
-    await page.goto('/');
+    await basicInit(page);
 
     //login first
     await page.getByRole('link', { name: 'Login', exact: true }).click();
@@ -90,7 +351,7 @@ test('diner dashboard', async ({ page }) => {
 });
 
 test('register', async ({ page }) => {
-    await page.goto('/');
+    await basicInit(page);
 
     const email = `test${Date.now()}@jwt.com`
 
@@ -103,7 +364,7 @@ test('register', async ({ page }) => {
 });
 
 test('franchise dashboard', async ({ page }) => {
-    await page.goto('/');
+    await basicInit(page);
 
     //login first
     await page.getByRole('link', { name: 'Login' }).click();
@@ -125,7 +386,7 @@ test('franchise dashboard', async ({ page }) => {
 
 
 test('admin dashboard', async ({ page }) => {
-    await page.goto('/');
+    await basicInit(page);
 
     //login as admin
     await page.getByRole('link', { name: 'Login' }).click();
@@ -133,24 +394,16 @@ test('admin dashboard', async ({ page }) => {
     await page.getByRole('textbox', { name: 'Password' }).fill('admin');
     await page.getByRole('textbox', { name: 'Password' }).press('Enter');
 
-    await expect(
-        page.getByText("The web's best pizza", { exact: true })
-    ).toBeVisible();
-
-    await page
-        .getByRole('navigation', { name: 'Global' })
-        .getByRole('link', { name: 'Franchise' })
-        .click();
-
-    await expect(page.getByText(/So you want a piece of the/i)).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Year' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Profit' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Costs' })).toBeVisible();
+    await expect(page.getByText("The web's best pizza", { exact: true })).toBeVisible();
+    await page.getByRole('navigation', { name: 'Global' }).getByRole('link', { name: 'Admin' }).click();
+    await expect(page.getByRole('heading', { name: "Mama Ricci's kitchen" })).toBeVisible();
+    await expect(page.getByText('Franchises')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add Franchise' })).toBeVisible();
 });
 
 test('create store', async ({ page }) => {
     test.setTimeout(15000);
-    await page.goto('/');
+    await basicInit(page);
     const storeName = `Test store ${Date.now()}`;
 
     await page.getByRole('link', { name: 'Login' }).click();
@@ -170,7 +423,7 @@ test('create store', async ({ page }) => {
 test('close store', async ({ page }) => {
     test.setTimeout(15000);
 
-    await page.goto('/');
+    await basicInit(page);
 
     await page.getByRole('link', { name: 'Login' }).click();
     await page.getByRole('textbox', { name: 'Email address' }).fill('f@jwt.com');
@@ -188,7 +441,7 @@ test('close store', async ({ page }) => {
 });
 
 test('about page', async ({ page }) => {
-    await page.goto('/');
+    await basicInit(page);
 
     await page.getByRole('link', { name: 'About' }).click();
     await expect(page.getByRole('main')).toBeVisible();
@@ -202,7 +455,7 @@ test('not found page', async ({ page }) => {
 
 test('delivery page', async ({ page }) => {
     test.setTimeout(15000);
-    await page.goto('/');
+    await basicInit(page);
 
     await page.getByRole('link', { name: 'Order' }).click();
     await page.getByRole('combobox').selectOption('3');
@@ -230,7 +483,7 @@ test('history page', async ({ page }) => {
 
 
 test('order now button', async ({ page }) => {
-    await page.goto('/');
+    await basicInit(page);
 
     await page.getByRole('button', { name: 'Order now' }).click();
     await expect(page).toHaveURL(/\/menu/);
