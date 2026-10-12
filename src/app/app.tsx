@@ -26,6 +26,7 @@ import { pizzaService } from '../service/service';
 import { Role, User } from '../service/pizzaService';
 import 'preline/preline';
 
+
 declare global {
   interface Window {
     HSStaticMethods: any;
@@ -82,6 +83,7 @@ export default function App() {
     { title: 'Payment', to: '/payment', component: <Payment />, display: [] },
     { title: 'Delivery', to: '/delivery', component: <Delivery />, display: [] },
     { title: 'Login', to: '/:subPath?/login', component: <Login setUser={setUser} />, constraints: [loggedOut], display: ['nav'] },
+    { title: 'Diner', to: '/diner-dashboard', component: <DinerDashboard user={user} setUser={setUser} />, display: [] },
     { title: 'Register', to: '/:subPath?/register', component: <Register setUser={setUser} />, constraints: [loggedOut], display: ['nav'] },
     { title: 'Logout', to: '/:subPath?/logout', component: <Logout setUser={setUser} />, constraints: [loggedIn], display: ['nav'] },
     { title: 'Docs', to: '/docs/:docType?', component: <Docs />, display: [] },
