@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import NotFound from './notFound';
 import Button from '../components/button';
 import { pizzaService } from '../service/service';
-import { Franchise, FranchiseList, Role, Store, User } from '../service/pizzaService';
+import { Franchise, FranchiseList, Role, Store, User, UserList } from '../service/pizzaService';
 import { TrashIcon } from '../icons';
 
 interface Props {
@@ -16,6 +16,8 @@ export default function AdminDashboard(props: Props) {
   const [franchiseList, setFranchiseList] = React.useState<FranchiseList>({ franchises: [], more: false });
   const [franchisePage, setFranchisePage] = React.useState(0);
   const filterFranchiseRef = React.useRef<HTMLInputElement>(null);
+  const [userList, setUserList] = React.useState<UserList>({ users: [], more: false, });
+  React.useEffect(() => { if (Role.isRole(props.user, Role.Admin)) { pizzaService.getUsers(1, 10, '*').then(setUserList); } }, [props.user]);
 
   React.useEffect(() => {
     (async () => {
@@ -123,6 +125,39 @@ export default function AdminDashboard(props: Props) {
         <div>
           <Button className="w-36 text-xs sm:text-sm sm:w-64" title="Add Franchise" onPress={createFranchise} />
         </div>
+
+        <div className="text-start py-8 px-4 sm:px-6 lg:px-8">
+          <h3 className="text-neutral-100 text-xl">Users</h3>
+
+          <div className="bg-neutral-100 overflow-x-auto my-4">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="uppercase text-neutral-100 bg-slate-400">
+                <tr>
+                  <th className="px-6 py-3 text-start">Name</th>
+                  <th className="px-6 py-3 text-start">Email</th>
+                  <th className="px-6 py-3 text-start">Role</th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-gray-200">
+                {userList.users.map((user) => (
+                  <tr key={user.id}>
+                    <td className="px-6 py-4 text-gray-800">
+                      {user.name}
+                    </td>
+                    <td className="px-6 py-4 text-gray-800">
+                      {user.email}
+                    </td>
+                    <td className="px-6 py-4 text-gray-800">
+                      {user.roles?.map((role) => role.role).join(', ')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </View>
     );
   }
