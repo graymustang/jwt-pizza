@@ -63,12 +63,17 @@ async function basicInit(page: Page) {
         }
         if (method === 'POST') {
             const body = route.request().postDataJSON();
+
             loggedInUser = {
                 id: '100',
                 name: body.name,
                 email: body.email,
+                password: body.password,
                 roles: [{ role: 'diner' }],
             };
+
+            validUsers[body.email] = loggedInUser;
+
             await route.fulfill({
                 json: {
                     user: loggedInUser,
@@ -239,6 +244,49 @@ async function basicInit(page: Page) {
                 },
             });
 
+            return;
+        }
+
+        await route.fallback();
+    });
+
+    await page.route(/\/api\/user\/[^/]+$/, async (route) => {
+        if (route.request().method() === 'PUT') {
+            const updated = route.request().postDataJSON();
+
+            const existingUser = Object.values(validUsers).find(
+                (user: any) => String(user.id) === String(updated.id)
+            );
+
+            if (!existingUser) {
+                await route.fulfill({
+                    status: 404,
+                    json: { message: 'User not found' },
+                });
+                return;
+            }
+
+            if (existingUser.email !== updated.email) {
+                delete validUsers[existingUser.email];
+            }
+
+            Object.assign(existingUser, {
+                name: updated.name,
+                email: updated.email,
+                password: updated.password || existingUser.password,
+            });
+
+            validUsers[existingUser.email] = existingUser;
+            loggedInUser = existingUser;
+
+            const { password, ...safeUser } = existingUser;
+
+            await route.fulfill({
+                json: {
+                    user: safeUser,
+                    token: 'abcdef',
+                },
+            });
             return;
         }
 

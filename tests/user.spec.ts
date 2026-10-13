@@ -1,4 +1,4 @@
-import { test, expect } from 'playwright-test-coverage';
+import { test, expect } from './testSetup';
 
 test('updateUser', async ({ page }) => {
     const email = `user${Math.floor(Math.random() * 10000)}@jwt.com`;
@@ -8,17 +8,22 @@ test('updateUser', async ({ page }) => {
     await page.getByRole('textbox', { name: 'Email address' }).fill(email);
     await page.getByRole('textbox', { name: 'Password' }).fill('diner');
     await page.getByRole('button', { name: 'Register' }).click();
+    console.log('URL after registration:', page.url());
+    console.log('Page after registration:', await page.locator('body').innerText());
 
     await page.getByRole('link', { name: 'pd' }).click();
 
     await expect(page.getByRole('main')).toContainText('pizza diner');
     await page.getByRole('button', { name: 'Edit' }).click();
     await expect(page.locator('h3')).toContainText('Edit user');
+
+    await page.getByRole('dialog').locator('input[type="text"]').fill('pizza dinerx');
+
     await page.getByRole('button', { name: 'Update' }).click();
 
     await page.waitForSelector('[role="dialog"].hidden', { state: 'attached' });
 
-    await expect(page.getByRole('main')).toContainText('pizza diner');
+    await expect(page.getByRole('main')).toContainText('pizza dinerx');
     await page.getByRole('link', { name: 'Logout' }).click();
     await page.getByRole('link', { name: 'Login' }).click();
 
