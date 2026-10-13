@@ -2,8 +2,9 @@ import { test, expect } from './testSetup';
 
 test('updateUser', async ({ page }) => {
     const email = `user${Date.now()}@jwt.com`;
-    
+    const newEmail = `updated${Date.now()}@jwt.com`;
     const password = 'diner';
+    const newPassword = 'newDiner123';
     let account: any;
     let loggedInUser: any;
 
@@ -72,16 +73,30 @@ test('updateUser', async ({ page }) => {
     await expect(page.getByRole('main')).toContainText('pizza diner');
     await page.getByRole('button', { name: 'Edit' }).click();
     await expect(page.locator('h3')).toContainText('Edit user');
-    await page.getByRole('dialog').locator('input[type="text"]').first().fill('pizza dinerx');
-    await page.getByRole('button', { name: 'Update' }).click();
-    await expect(page.getByRole('main')).toContainText('pizza dinerx');
 
+    // Update all three fields
+    await page.getByRole('dialog').locator('input[type="text"]').first().fill('pizza dinerx');
+    await page.getByRole('dialog').locator('input[type="email"]').fill(newEmail);
+    await page.getByRole('dialog').locator('#password').fill(newPassword);
+
+    await page.getByRole('button', { name: 'Update' }).click();
+
+    // Verify changes
+    await expect(page.getByRole('main')).toContainText('pizza dinerx');
+    await expect(page.getByRole('main')).toContainText(newEmail);
+
+    // Logout
     await page.getByRole('link', { name: 'Logout' }).click();
+
+    // Login with updated credentials
     await page.getByRole('link', { name: 'Login' }).click();
-    await page.getByRole('textbox', { name: 'Email address' }).fill(email);
-    await page.getByRole('textbox', { name: 'Password' }).fill(password);
+    await page.getByRole('textbox', { name: 'Email address' }).fill(newEmail);
+    await page.getByRole('textbox', { name: 'Password' }).fill(newPassword);
     await page.getByRole('button', { name: 'Login' }).click();
+
+    // Verify changes persisted
     await page.getByRole('link', { name: 'pd' }).click();
     await expect(page.getByRole('main')).toContainText('pizza dinerx');
+    await expect(page.getByRole('main')).toContainText(newEmail);
 });
 
