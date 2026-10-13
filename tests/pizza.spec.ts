@@ -35,6 +35,29 @@ async function basicInit(page: Page) {
         },
     };
 
+    //Mock user list for admin dashboard
+    await page.route('**/api/user?*', async (route) => {
+        await route.fulfill({
+            json: {
+                users: [
+                    {
+                        id: '3',
+                        name: 'pizza diner',
+                        email: 'd@jwt.com',
+                        roles: [{ role: 'diner' }],
+                    },
+                    {
+                        id: '5',
+                        name: 'admin',
+                        email: 'a@jwt.com',
+                        roles: [{ role: 'admin' }],
+                    },
+                ],
+                more: false,
+            },
+        });
+    });
+
     //login/registe /logout
     await page.route('*/**/api/auth', async (route) => {
         const method = route.request().method();

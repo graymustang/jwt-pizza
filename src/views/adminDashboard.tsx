@@ -17,7 +17,14 @@ export default function AdminDashboard(props: Props) {
   const [franchisePage, setFranchisePage] = React.useState(0);
   const filterFranchiseRef = React.useRef<HTMLInputElement>(null);
   const [userList, setUserList] = React.useState<UserList>({ users: [], more: false, });
-  React.useEffect(() => { if (Role.isRole(props.user, Role.Admin)) { pizzaService.getUsers(1, 10, '*').then(setUserList); } }, [props.user]);
+  const [userFilter, setUserFilter] = React.useState('*');
+  const filterUserRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (Role.isRole(props.user, Role.Admin)) {
+      pizzaService.getUsers(1, 10, userFilter).then(setUserList);
+    }
+  }, [props.user, userFilter]);
 
   React.useEffect(() => {
     (async () => {
@@ -39,6 +46,11 @@ export default function AdminDashboard(props: Props) {
 
   async function filterFranchises() {
     setFranchiseList(await pizzaService.getFranchises(franchisePage, 10, `*${filterFranchiseRef.current?.value}*`));
+  }
+
+  function filterUsers() {
+    const search = filterUserRef.current?.value.trim() || '';
+    setUserFilter(search ? `*${search}*` : '*');
   }
 
   let response = <NotFound />;
@@ -128,6 +140,25 @@ export default function AdminDashboard(props: Props) {
 
         <div className="text-start py-8 px-4 sm:px-6 lg:px-8">
           <h3 className="text-neutral-100 text-xl">Users</h3>
+
+          <div className="flex gap-2 my-4">
+            <input
+              type="text"
+              ref={filterUserRef}
+              placeholder="Filter users"
+              aria-label="Filter users"
+              className="px-3 py-2 text-sm border border-gray-300 rounded-lg"
+            />
+
+            <button
+              type="button"
+              onClick={filterUsers}
+              className="px-3 py-2 text-sm font-semibold rounded-lg border border-orange-400 text-orange-400 hover:text-orange-800"
+            >
+              Search Users
+            </button>
+          </div>
+
 
           <div className="bg-neutral-100 overflow-x-auto my-4">
             <table className="min-w-full divide-y divide-gray-200">
