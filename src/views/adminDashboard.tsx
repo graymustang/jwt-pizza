@@ -19,12 +19,13 @@ export default function AdminDashboard(props: Props) {
   const [userList, setUserList] = React.useState<UserList>({ users: [], more: false, });
   const [userFilter, setUserFilter] = React.useState('*');
   const filterUserRef = React.useRef<HTMLInputElement>(null);
+  const [userPage, setUserPage] = React.useState(1);
 
   React.useEffect(() => {
     if (Role.isRole(props.user, Role.Admin)) {
-      pizzaService.getUsers(1, 10, userFilter).then(setUserList);
+      pizzaService.getUsers(userPage, 10, userFilter).then(setUserList);
     }
-  }, [props.user, userFilter]);
+  }, [props.user, userFilter, userPage]);
 
   React.useEffect(() => {
     (async () => {
@@ -47,10 +48,20 @@ export default function AdminDashboard(props: Props) {
   async function filterFranchises() {
     setFranchiseList(await pizzaService.getFranchises(franchisePage, 10, `*${filterFranchiseRef.current?.value}*`));
   }
-
   function filterUsers() {
     const search = filterUserRef.current?.value.trim() || '';
+    setUserPage(1);
     setUserFilter(search ? `*${search}*` : '*');
+  }
+
+  function nextUsersPage() {
+    if (userList.more) {
+      setUserPage((page) => page + 1);
+    }
+  }
+
+  function previousUsersPage() {
+    setUserPage((page) => Math.max(1, page - 1));
   }
 
   let response = <NotFound />;
@@ -161,7 +172,7 @@ export default function AdminDashboard(props: Props) {
 
 
           <div className="bg-neutral-100 overflow-x-auto my-4">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table aria-label="Users" className="min-w-full divide-y divide-gray-200">
               <thead className="uppercase text-neutral-100 bg-slate-400">
                 <tr>
                   <th className="px-6 py-3 text-start">Name</th>
@@ -186,6 +197,31 @@ export default function AdminDashboard(props: Props) {
                 ))}
               </tbody>
             </table>
+
+            <div className="flex justify-between items-center mt-4">
+              <button
+                type="button"
+                onClick={previousUsersPage}
+                disabled={userPage === 1}
+                className="px-4 py-2 rounded-lg bg-orange-500 text-white disabled:opacity-40"
+              >
+                Previous Users
+              </button>
+
+              <span className="text-gray-800">
+                Page {userPage}
+              </span>
+
+              <button
+                type="button"
+                onClick={nextUsersPage}
+                disabled={!userList.more}
+                className="px-4 py-2 rounded-lg bg-orange-500 text-white disabled:opacity-40"
+              >
+                Next Users
+              </button>
+            </div>
+
           </div>
         </div>
 

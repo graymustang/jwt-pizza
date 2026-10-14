@@ -38,36 +38,37 @@ test('admin can list users', async ({ page }) => {
     });
 
 
+
     await page.route('**/api/user?*', async (route) => {
         const url = new URL(route.request().url());
+        const pageNumber = Number(url.searchParams.get('page') || '1');
+        const limit = Number(url.searchParams.get('limit') || '10');
         const nameFilter = url.searchParams.get('name') || '*';
 
-        const users = [
-            {
-                id: '1',
-                name: 'Pizza Diner',
-                email: 'd@jwt.com',
-                roles: [{ role: 'diner' }],
-            },
-            {
-                id: '2',
-                name: 'Pizza Admin',
-                email: 'admin@jwt.com',
-                roles: [{ role: 'admin' }],
-            },
-        ];
+        const users = Array.from({ length: 23 }, (_, i) => ({
+            id: String(i + 1),
+            name: `Pizza User ${i + 1}`,
+            email: `user${i + 1}@jwt.com`,
+            roles: [{ role: 'diner' }],
+        }));
 
         const filteredUsers = users.filter((user) =>
-            user.name.toLowerCase().includes(nameFilter.replace(/\*/g, '').toLowerCase())
+            user.name.toLowerCase().includes(
+                nameFilter.replace(/\*/g, '').toLowerCase()
+            )
         );
+
+        const start = (pageNumber - 1) * limit;
+        const pageUsers = filteredUsers.slice(start, start + limit);
 
         await route.fulfill({
             json: {
-                users: filteredUsers,
-                more: false,
+                users: pageUsers,
+                more: start + limit < filteredUsers.length,
             },
         });
     });
+
 
 
     await page.goto('/');
@@ -80,16 +81,39 @@ test('admin can list users', async ({ page }) => {
     await page.goto('/admin-dashboard');
 
     await expect(page.getByRole('heading', { name: 'Users' })).toBeVisible();
-    await expect(page.getByRole('main')).toContainText('Pizza Diner');
-    await expect(page.getByRole('main')).toContainText('d@jwt.com');
-    await expect(page.getByRole('main')).toContainText('Pizza Admin');
-    await expect(page.getByRole('main')).toContainText('admin@jwt.com');
+    const usersTable = page.getByRole('table', { name: 'Users' });
 
-
-    await page.getByPlaceholder('Filter users').fill('Diner');
+    await page.getByPlaceholder('Filter users').fill('User');
     await page.getByRole('button', { name: 'Search Users' }).click();
 
-    await expect(page.getByRole('main')).toContainText('Pizza Diner');
-    await expect(page.getByRole('main')).not.toContainText('Pizza Admin');
+    await expect(usersTable.getByRole('cell', { name: 'Pizza User 1', exact: true })).toBeVisible();
+    await expect(usersTable.getByRole('cell', { name: 'Pizza User 10', exact: true })).toBeVisible();
+    await expect(usersTable.getByRole('cell', { name: 'user11@jwt.com', exact: true })).toHaveCount(0);
+
+    // First page
+    await expect(page.getByText('Page 1', { exact: true })).toBeVisible();
+
+    // Second page
+    await page.getByRole('button', { name: 'Next Users' }).click();
+
+    await expect(usersTable.getByRole('cell', { name: 'Pizza User 11', exact: true })).toBeVisible();
+    await expect(usersTable.getByRole('cell', { name: 'Pizza User 20', exact: true })).toBeVisible();
+    await expect(usersTable.getByRole('cell', { name: 'user1@jwt.com', exact: true })).toHaveCount(0);
+    await expect(page.getByText('Page 2', { exact: true })).toBeVisible();
+
+    // Third page
+    await page.getByRole('button', { name: 'Next Users' }).click();
+
+    await expect(usersTable.getByRole('cell', { name: 'Pizza User 21', exact: true })).toBeVisible();
+    await expect(usersTable.getByRole('cell', { name: 'Pizza User 23', exact: true })).toBeVisible();
+    await expect(page.getByText('Page 3', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Next Users' })).toBeDisabled();
+
+    // Go back
+    await page.getByRole('button', { name: 'Previous Users' }).click();
+
+    await expect(usersTable.getByRole('cell', { name: 'Pizza User 11', exact: true })).toBeVisible();
+    await expect(page.getByText('Page 2', { exact: true })).toBeVisible();
+
 
 });
