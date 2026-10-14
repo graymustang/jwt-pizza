@@ -64,6 +64,20 @@ export default function AdminDashboard(props: Props) {
     setUserPage((page) => Math.max(1, page - 1));
   }
 
+
+  async function deleteUser(userId: string) {
+    await pizzaService.deleteUser(userId);
+
+    const updatedList = await pizzaService.getUsers(
+      userPage,
+      10,
+      userFilter
+    );
+
+    setUserList(updatedList);
+  }
+
+
   let response = <NotFound />;
   if (Role.isRole(props.user, Role.Admin)) {
     response = (
@@ -178,6 +192,7 @@ export default function AdminDashboard(props: Props) {
                   <th className="px-6 py-3 text-start">Name</th>
                   <th className="px-6 py-3 text-start">Email</th>
                   <th className="px-6 py-3 text-start">Role</th>
+                  <th className="px-6 py-3 text-start">Action</th>
                 </tr>
               </thead>
 
@@ -193,6 +208,15 @@ export default function AdminDashboard(props: Props) {
                     <td className="px-6 py-4 text-gray-800">
                       {user.roles?.map((role) => role.role).join(', ')}
                     </td>
+                    <td className="px-6 py-4">
+                      <button
+                        type="button"
+                        onClick={() => deleteUser(String(user.id))}
+                        className="px-3 py-2 text-sm font-semibold rounded-lg border border-red-500 text-red-500 hover:bg-red-100">
+                        Delete
+                      </button>
+                    </td>
+
                   </tr>
                 ))}
               </tbody>

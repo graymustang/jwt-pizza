@@ -29,7 +29,7 @@ class HttpPizzaService implements PizzaService {
         }
 
         const r = await fetch(path, options);
-        const j = await r.json();
+        const j = r.status === 204 ? undefined : await r.json();
         if (r.ok) {
           resolve(j);
         } else {
@@ -78,6 +78,10 @@ class HttpPizzaService implements PizzaService {
     return this.callEndpoint(
       `/api/user?page=${page}&limit=${limit}&name=${encodeURIComponent(nameFilter)}`
     );
+  }
+  
+  async deleteUser(userId: string): Promise<void> {
+    await this.callEndpoint(`/api/user/${userId}`, 'DELETE');
   }
 
   async getMenu(): Promise<Menu> {
