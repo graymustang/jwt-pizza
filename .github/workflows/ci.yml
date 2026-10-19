@@ -3,12 +3,15 @@
     name: Deploy to AWS
     needs: build
     runs-on: ubuntu-latest
+
     permissions:
       id-token: write
       contents: read
+
     environment:
       name: production
       url: https://pizza.graymustangpizza.click
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,11 +27,12 @@
           npm run build
           cp dist/index.html dist/404.html
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Create OIDC token to AWS
+        uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT }}:role/${{ secrets.CI_IAM_ROLE }}
+          audience: sts.amazonaws.com
           aws-region: us-east-1
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT }}:role/${{ secrets.CI_IAM_ROLE }}
 
       - name: Upload frontend to S3
         run: |
